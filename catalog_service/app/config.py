@@ -1,9 +1,9 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
+
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file="../../auth_service/.env", extra="ignore")
-
-    DATABASE_URL: str = "postgresql+asyncpg://catalog:catalog@localhost:5433/catalog_db"
+    DATABASE_URL: str = os.getenv("CATALOG_DATABASE_URL")
 
 settings = Settings()
