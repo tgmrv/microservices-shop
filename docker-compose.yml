@@ -1,0 +1,123 @@
+
+services:
+  catalog-db:
+    image: postgres:16-alpine
+    container_name: catalog-db
+    environment:
+      POSTGRES_USER: catalog
+      POSTGRES_PASSWORD: catalog
+      POSTGRES_DB: catalog_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - catalog_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catalog -d catalog_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  order-db:
+    image: postgres:16-alpine
+    container_name: order-db
+    environment:
+      POSTGRES_USER: order
+      POSTGRES_PASSWORD: order
+      POSTGRES_DB: order_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - order_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U order -d order_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  payment-db:
+    image: postgres:16-alpine
+    container_name: payment-db
+    environment:
+      POSTGRES_USER: payment
+      POSTGRES_PASSWORD: payment
+      POSTGRES_DB: payment_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - payment_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payment -d payment_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  catalog-service:
+    build: ./catalog_service
+    container_name: catalog-service
+    ports:
+      - "8001:8000"
+    depends_on:
+      catalog-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://catalog:catalog@catalog-db:5432/catalog_db
+
+  order-service:
+    build: ./order_service
+    container_name: order-service
+    ports:
+      - "8002:8000"
+    depends_on:
+      order-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      catalog-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql+asyncpg://order:order@order-db:5432/order_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      CATALOG_SERVICE_URL: http://catalog-service:8000
+      PAYMENT_SERVICE_URL: http://payment-service:8000
+      PAYMENT_COMPLETED_ROUTING_KEY: payment.completed
+      PAYMENT_EXCHANGE_NAME: payment.events
+      PAYMENT_QUEUE_NAME: payment.results
+
+
+  payment-service:
+    build: ./payment_service
+    container_name: payment-service
+    ports:
+      - "8003:8000"
+    depends_on:
+      payment-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://payment:payment@payment-db:5432/payment_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      PAYMENT_COMPLETED_ROUTING_KEY: payment.completed
+      PAYMENT_EXCHANGE_NAME: payment.events
+
+volumes:
+  catalog_data:
+  order_data:
+  payment_data:
