@@ -51,6 +51,23 @@ services:
       timeout: 5s
       retries: 5
 
+  auth-db:
+      image: postgres:16-alpine
+      container_name: auth-db
+      environment:
+        POSTGRES_USER: auth
+        POSTGRES_PASSWORD: auth
+        POSTGRES_DB: auth_db
+      ports:
+        - "5436:5432"
+      volumes:
+        - auth_data:/var/lib/postgresql/data
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U auth -d auth_db"]
+        interval: 5s
+        timeout: 5s
+        retries: 5
+
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     container_name: rabbitmq
@@ -117,7 +134,40 @@ services:
       PAYMENT_COMPLETED_ROUTING_KEY: payment.completed
       PAYMENT_EXCHANGE_NAME: payment.events
 
+  auth-service:
+    build: ./auth_service
+    container_name: auth-service
+    ports:
+      - "8004:8000"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://auth:auth@auth-db:5432/auth_db
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+
+  api-gateway:
+    build: ./api_gateway
+    container_name: api-gateway
+    ports:
+      - "8000:8000"
+    depends_on:
+      auth-service:
+        condition: service_started
+      catalog-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8000
+      CATALOG_SERVICE_URL: http://catalog-service:8000
+      ORDER_SERVICE_URL: http://order-service:8000
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+
 volumes:
   catalog_data:
   order_data:
   payment_data:
+  auth_data:
