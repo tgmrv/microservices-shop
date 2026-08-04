@@ -7,8 +7,8 @@ services:
       POSTGRES_USER: catalog
       POSTGRES_PASSWORD: catalog
       POSTGRES_DB: catalog_db
-    ports:
-      - "5433:5432"
+    expose:
+      - "5432"
     volumes:
       - catalog_data:/var/lib/postgresql/data
     healthcheck:
@@ -24,8 +24,8 @@ services:
       POSTGRES_USER: order
       POSTGRES_PASSWORD: order
       POSTGRES_DB: order_db
-    ports:
-      - "5434:5432"
+    expose:
+      - "5432"
     volumes:
       - order_data:/var/lib/postgresql/data
     healthcheck:
@@ -41,8 +41,8 @@ services:
       POSTGRES_USER: payment
       POSTGRES_PASSWORD: payment
       POSTGRES_DB: payment_db
-    ports:
-      - "5435:5432"
+    expose:
+      - "5432"
     volumes:
       - payment_data:/var/lib/postgresql/data
     healthcheck:
@@ -58,8 +58,8 @@ services:
         POSTGRES_USER: auth
         POSTGRES_PASSWORD: auth
         POSTGRES_DB: auth_db
-      ports:
-        - "5436:5432"
+      expose:
+        - "5432"
       volumes:
         - auth_data:/var/lib/postgresql/data
       healthcheck:
@@ -86,6 +86,8 @@ services:
   catalog-service:
     build: ./catalog_service
     container_name: catalog-service
+    expose:
+      - "8000"
     ports:
       - "8001:8000"
     depends_on:
@@ -97,6 +99,8 @@ services:
   order-service:
     build: ./order_service
     container_name: order-service
+    expose:
+      - "8000"
     ports:
       - "8002:8000"
     depends_on:
@@ -121,6 +125,8 @@ services:
   payment-service:
     build: ./payment_service
     container_name: payment-service
+    expose:
+      - "8000"
     ports:
       - "8003:8000"
     depends_on:
@@ -137,6 +143,8 @@ services:
   auth-service:
     build: ./auth_service
     container_name: auth-service
+    expose:
+      - "8000"
     ports:
       - "8004:8000"
     depends_on:
@@ -150,6 +158,8 @@ services:
   api-gateway:
     build: ./api_gateway
     container_name: api-gateway
+    expose:
+      - "8000"
     ports:
       - "8000:8000"
     depends_on:
@@ -165,6 +175,16 @@ services:
       ORDER_SERVICE_URL: http://order-service:8000
       JWT_SECRET: ${JWT_SECRET}
       JWT_ALGORITHM: ${JWT_ALGORITHM}
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    depends_on:
+      api-gateway:
+        condition: service_started
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
 
 volumes:
   catalog_data:

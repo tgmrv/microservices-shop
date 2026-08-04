@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import settings
-from .rabbitmq import publish_event
+from .rabbitmq import rabbitmq_publish_event
 from .schemas import PaymentCreateSchema, PaymentReadSchema
 from .models import PaymentORM
 
@@ -37,11 +37,11 @@ class PaymentService:
         payments = result.scalars().all()
         return list(payments)
 
-    async def complete_payment(self,
-                               payment: PaymentORM,
-                               exchange: AbstractExchange
-                               ) -> PaymentReadSchema:
-
+    async def complete_payment(
+            self,
+            payment: PaymentORM,
+            exchange: AbstractExchange,
+    ) -> PaymentReadSchema:
         await asyncio.sleep(3)
 
         payment.status = "completed"
@@ -57,6 +57,6 @@ class PaymentService:
             "status": "completed",
         }
 
-        await publish_event(exchange, settings.PAYMENT_COMPLETED_ROUTING_KEY, event)
+        await rabbitmq_publish_event(exchange, settings.PAYMENT_COMPLETED_ROUTING_KEY, event)
 
         return PaymentReadSchema.model_validate(payment)

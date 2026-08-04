@@ -5,7 +5,8 @@ from .config import settings
 from .api.router import router
 
 
-app = FastAPI()
+app = FastAPI(docs_url="/api/docs",
+              openapi_url="/api/openapi.json")
 
 app.add_middleware(
     CORSMiddleware,

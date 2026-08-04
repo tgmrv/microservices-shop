@@ -18,11 +18,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    connection = await connect_rabbitmq(url=settings.RABBITMQ_URL)
-    channel = await connection.channel()
+    rabbitmq_connection = await connect_rabbitmq(url=settings.RABBITMQ_URL)
+    channel = await rabbitmq_connection.channel()
     app.state.payment_exchange = await declare_payment_exchange(channel, settings.PAYMENT_EXCHANGE_NAME)
 
-    yield
+    try:
+        yield
+    finally:
+        await rabbitmq_connection.close()
 
 
 app = FastAPI(lifespan=lifespan)

@@ -41,6 +41,8 @@ async def register(payload: UserRegisterSchema, db: AsyncSession = Depends(get_d
 @app.post("/login", response_model=TokenResponseSchema)
 async def login(payload: UserLoginSchema, db: AsyncSession = Depends(get_db)):
     user = await db.scalar(select(UserORM).where(UserORM.email == payload.email))
+    if not user:
+        raise HTTPException(status_code=400, detail="User doesn't exist")
 
     if not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)

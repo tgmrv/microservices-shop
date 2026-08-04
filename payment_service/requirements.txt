@@ -1,5 +1,4 @@
 aio-pika==9.6.2
-aiokafka
 asyncpg==0.31.0
 fastapi==0.141.1
 pydantic-settings==2.14.2
