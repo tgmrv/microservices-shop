@@ -44,7 +44,7 @@ async def login(payload: UserLoginSchema, db: AsyncSession = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=400, detail="User doesn't exist")
 
-    if not verify_password(payload.password, user.hashed_password):
+    if not await verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
     access_token = await create_access_token(user)

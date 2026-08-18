@@ -4,3 +4,6 @@ httpx
 PyJWT[crypto]
 pydantic-settings
 uvicorn
+httpx
+pytest
+pytest-asyncio

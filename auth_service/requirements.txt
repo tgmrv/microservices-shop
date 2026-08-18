@@ -7,3 +7,6 @@ pydantic-settings
 sqlalchemy
 uvicorn[standard]
 python-dotenv
+aiosqlite
+pytest
+pytest-asyncio

@@ -10,7 +10,7 @@ class ProductORM(Base):
     __tablename__ = "products"
 
     name: Mapped[str]
-    description: Mapped[str]
+    description: Mapped[str] = mapped_column(nullable=True)
     price: Mapped[float]
-    image_url: Mapped[str]
+    image_url: Mapped[str] = mapped_column(nullable=True)
     category: Mapped[str]

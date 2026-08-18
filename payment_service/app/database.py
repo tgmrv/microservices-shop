@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
-from app.config import settings
+from .config import settings
 
-engine = create_async_engine(settings.DATABASE_URL)
+engine = create_async_engine(settings.PAYMENT_DATABASE_URL)
 AsyncSessionLocal = async_sessionmaker(bind=engine)
 
 async def get_db():

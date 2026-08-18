@@ -94,7 +94,7 @@ services:
       catalog-db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+asyncpg://catalog:catalog@catalog-db:5432/catalog_db
+      CATALOG_DATABASE_URL: postgresql+asyncpg://catalog:catalog@catalog-db:5432/catalog_db
 
   order-service:
     build: ./order_service
@@ -113,7 +113,7 @@ services:
       payment-service:
         condition: service_started
     environment:
-      DATABASE_URL: postgresql+asyncpg://order:order@order-db:5432/order_db
+      ORDER_DATABASE_URL: postgresql+asyncpg://order:order@order-db:5432/order_db
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
       CATALOG_SERVICE_URL: http://catalog-service:8000
       PAYMENT_SERVICE_URL: http://payment-service:8000
@@ -135,7 +135,7 @@ services:
       rabbitmq:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+asyncpg://payment:payment@payment-db:5432/payment_db
+      PAYMENT_DATABASE_URL: postgresql+asyncpg://payment:payment@payment-db:5432/payment_db
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
       PAYMENT_COMPLETED_ROUTING_KEY: payment.completed
       PAYMENT_EXCHANGE_NAME: payment.events
@@ -151,7 +151,7 @@ services:
       auth-db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+asyncpg://auth:auth@auth-db:5432/auth_db
+      AUTH_DATABASE_URL: postgresql+asyncpg://auth:auth@auth-db:5432/auth_db
       JWT_SECRET: ${JWT_SECRET}
       JWT_ALGORITHM: ${JWT_ALGORITHM}
 

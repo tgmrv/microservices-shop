@@ -3,9 +3,9 @@ from typing import Optional
 
 class ProductCreateSchema(BaseModel):
     name: str
-    description: Optional[str]
-    price: int
-    image_url: Optional[str]
+    description: Optional[str] = None
+    price: float
+    image_url: Optional[str] = None
     category: str
 
 class ProductReadSchema(BaseModel):
@@ -14,6 +14,6 @@ class ProductReadSchema(BaseModel):
     id: str
     name: str
     description: Optional[str]
-    price: int
+    price: float
     image_url: Optional[str]
     category: str
