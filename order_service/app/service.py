@@ -38,17 +38,10 @@ class OrderService:
         await self.db.commit()
         await self.db.refresh(order)
 
-        payment_result = await self.payment_client.create_payment(
+        await self.payment_client.create_payment(
             order_id=order.id,
             amount=total_price
         )
-
-        if payment_result["status"] == "completed":
-            order.status = "paid"
-        else:
-            order.status = "payment_failed"
-        await self.db.commit()
-        await self.db.refresh(order)
 
         return OrderReadSchema.model_validate(order)
 
