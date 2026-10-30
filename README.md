@@ -1,58 +1,88 @@
- # Microservices Shop
+# Microservices Shop
 
-Микросервисный интернет-магазин на FastAPI + PostgreSQL.
+Backend интернет-магазина на FastAPI. Проект демонстрирует
+аутентификацию пользователей, создание заказов, взаимодействие сервисов
+по HTTP и обработку событий через RabbitMQ.
+
+Оплата имитируется автоматически: Payment Service ожидает три секунды,
+помечает платёж завершённым и публикует событие. Реальные списания
+не выполняются.
 
 ## Стек
-- Python 3.14
+- Python
 - FastAPI
-- SQLAlchemy (async)
+- Pydantic
+- SQLAlchemy
 - PostgreSQL
 - Docker
 - RabbitMQ
 - Nginx
+- pytest
 
 ## Архитектура проекта
-Все внешние запросы проходят через **Nginx** на порту **80** (или **8080**) и попадают в **API Gateway**
+Клиент отправляет запросы в **API Gateway** через **Nginx** на порту **80**.
 
-**Swagger**: `http://localhost:80/api/docs`
-- **API Gateway** (/api_gateway): Единая точка входа для всех _клиентских запросов_ (помечены - ✅, требуется JWT-аутентификация - 🔐).
-  - GET `/me` - Получение ID и почты пользователя ✅🔐
+**Gateway** предоставляет внешний API и проверяет JWT для защищённых маршрутов.
 
+| Сервис | Ответственность |
+|---|---|
+| API Gateway | Маршрутизация запросов, проверка JWT и владельца заказа |
+| Auth Service | Регистрация, проверка паролей и выдача JWT |
+| Catalog Service | Хранение и получение товаров |
+| Order Service | Расчёт стоимости, сохранение заказов и обработка событий оплаты |
+| Payment Service | Создание платежей, имитация оплаты и публикация событий |
 
-- **Auth Service** (/auth_service): Сервис аутентификации и авторизации. Отвечает за регистрацию, вход пользователей, выдачу и валидацию JWT-токенов. 
-  - POST `/register` - Регистрация нового пользователя ✅
-  - POST `/login` - Вход в систему ✅
+Order Service обращается к Catalog Service и Payment Service по HTTP.
+События об успешной оплате передаются из Payment Service в Order Service
+через RabbitMQ.
 
+## Внешний API
 
-- **Catalog Service** (/catalog_service): Сервис управления каталогом товаров. Предоставляет API для просмотра, поиска и управления товарами.
-  - GET `/products` - Получить список всех товаров ✅
-  - GET `/products/{product_id}` - Получить товар по ID ✅
-  - POST `/products` - Создать новый товар
-  - DELETE `/products/{iproduct_d}` - Удалить товар
+Все пути указаны относительно API Gateway.
 
+| Метод | Путь | Назначение | Требуется JWT |
+|---|---|---|---|
+| POST | `/api/auth/register` | Регистрация | Нет |
+| POST | `/api/auth/login` | Вход | Нет |
+| GET | `/api/auth/me` | Текущий пользователь | Да |
+| GET | `/api/products` | Список товаров | Нет |
+| GET | `/api/products/{product_id}` | Получение товара | Нет |
+| POST | `/api/orders` | Создание заказа и запуск имитации оплаты | Да |
+| GET | `/api/orders/{order_id}` | Получение своего заказа | Да |
 
-- **Order Service** (`/order_service`): Сервис управления заказами. Обрабатывает создание заказов, проверку товаров и обновление статуса через RabbitMQ.
-  - GET `/orders` - Получить список всех заказов 
-  - GET `/orders/{order_id}` - Получить заказ по ID ✅🔐
-  - POST `/orders` - Создать новый заказ ✅🔐
+Токен передаётся в заголовке:
 
+```http
+Authorization: Bearer <access_token>
+```
 
+При создании заказа Gateway заменяет переданный `user_id`
+идентификатором пользователя из JWT.
 
-- **Payment Service** (`/payment_service`): Сервис обработки платежей. Выполняет имитацию оплаты, обновляет статус платежа и отправляет события в RabbitMQ.
-  - GET `/payments` - Получить список платежей
-  - GET `/payments/{id}` - Получить платёж по ID
-  - POST `/payments` - Создать платёж
+Создание и удаление товаров, а также методы работы с платежами
+реализованы во внутренних сервисах и не представлены маршрутами Gateway.
 
 ## Запуск
+
+Требуются Docker и Docker Compose.
+
 ```bash
 git clone https://github.com/tgmrv/microservices-shop.git
 cd microservices-shop
-
 docker-compose up -d --build
-
-# Остановить сервис
-docker-compose down
-
-# Остановить сервис и удалить все данные
-docker-compose down -v
 ```
+
+**Swagger UI**: `http://localhost:80/api/docs`
+
+Остановка:
+
+```bash
+docker-compose down
+```
+
+## Тестирование
+
+В проекте есть тесты API, бизнес-логики и обработки события оплаты.
+
+Для тестирования работы с БД используется SQLite в памяти.
+Внешние HTTP-вызовы и публикация событий подменяются моками.
